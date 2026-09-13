@@ -1,4 +1,19 @@
 # ABB-2026-Theme-1-Agentic-Predictive-Maintenance-Studio
+
+## Live Project
+
+Built by **GreenStacks LLC**, a SaaS company.
+
+- [Open the Predictive Maintenance Studio](https://abb-predictive-maintenance-studio.replit.app/)
+- [Watch the animated project demo](https://abb-predictive-maintenance-studio.replit.app/abb-maintenance-video/)
+
+### Website sections
+
+- [Command Center](https://abb-predictive-maintenance-studio.replit.app/#command-center)
+- [Asset Fleet](https://abb-predictive-maintenance-studio.replit.app/#asset-fleet)
+- [Agent Runs](https://abb-predictive-maintenance-studio.replit.app/#agent-runs)
+- [Work Orders](https://abb-predictive-maintenance-studio.replit.app/#work-orders)
+
 Hacker world competition
 
 ABB Accelerator 2026 - Agentic Predictive Maintenance Studio
