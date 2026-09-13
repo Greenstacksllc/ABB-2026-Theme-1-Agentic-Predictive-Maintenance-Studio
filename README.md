@@ -1,6 +1,6 @@
 # ABB-2026-Theme-1-Agentic-Predictive-Maintenance-Studio
 Hacker world competition
-"""
+
 ABB Accelerator 2026 - Agentic Predictive Maintenance Studio
 Theme 1: Agentic Predictive Maintenance Studio
 
@@ -8,7 +8,7 @@ Core Features:
 1. Patent-Pending Silicon Lag Optimization Engine (Telemetry Latency Calibration).
 2. Autonomous Multi-Agent System (Profiler Agent & Diagnostic Evaluator Agent).
 3. Real-Time Telemetry Stream Processing & Anomaly Detection.
-"""
+
 
 import asyncio
 import math
