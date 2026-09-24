@@ -1,192 +1,103 @@
-# ABB-2026-Theme-1-Agentic-Predictive-Maintenance-Studio
+# Agentic Predictive Maintenance Studio — ABB Accelerator 2026
 
-## Live Project
+An independently runnable, synthetic-data proof of concept by GreenStacks LLC for Theme 1.
+It demonstrates a bounded agent workflow: **ingest → assess → draft → human review**.
 
-Built by **GreenStacks LLC**, a SaaS company.
+## Public project links
 
 - [Open the Predictive Maintenance Studio](https://abb-predictive-maintenance-studio.replit.app/)
 - [Watch the animated project demo](https://abb-predictive-maintenance-studio.replit.app/abb-maintenance-video/)
 
-### Website sections
+The hosted website and animation are separate from this local Python prototype.
 
-- [Command Center](https://abb-predictive-maintenance-studio.replit.app/#command-center)
-- [Asset Fleet](https://abb-predictive-maintenance-studio.replit.app/#asset-fleet)
-- [Agent Runs](https://abb-predictive-maintenance-studio.replit.app/#agent-runs)
-- [Work Orders](https://abb-predictive-maintenance-studio.replit.app/#work-orders)
+## Try it in under a minute
 
-Hacker world competition
+Python 3.10+ is the only requirement. No API keys, external services, or packages.
 
-ABB Accelerator 2026 - Agentic Predictive Maintenance Studio
-Theme 1: Agentic Predictive Maintenance Studio
+```bash
+python3 server.py
+```
 
-Core Features:
-1. Patent-Pending Silicon Lag Optimization Engine (Telemetry Latency Calibration).
-2. Autonomous Multi-Agent System (Profiler Agent & Diagnostic Evaluator Agent).
-3. Real-Time Telemetry Stream Processing & Anomaly Detection.
+Open `http://127.0.0.1:8765`, select **Run full sample**, inspect the PUMP-02
+evidence and decision trace, then approve or dismiss the draft with a reviewer name.
+Use **Reset demo** to replay. The sample has normal readings, a warning, and a
+critical event. You can paste an additional observation into the JSON form.
 
+For a machine-readable CLI demonstration:
 
-import asyncio
-import math
-import random
-import time
-from dataclasses import dataclass
-from typing import Dict, List, Tuple
+```bash
+python3 studio.py
+python3 studio.py --csv examples/telemetry.csv
+python3 -m unittest discover -s tests -v
+```
 
+## What the prototype actually does
 
-@dataclass
-class TelemetryFrame:
-    sensor_id: str
-    timestamp_raw: float
-    vibration_hz: float
-    temperature_c: float
-    pressure_bar: float
-    hardware_queue_delay_ms: float  # Silicon propagation lag
+- Validates sensor values and timezone-aware timestamps; rejects repeated or
+  out-of-order observations per asset without corrupting asset state.
+- Assesses three telemetry fields against clearly labeled **illustrative demo
+  limits** and records observed values and limits for each breached sensor.
+- Uses a transparent, rule-based relative indicator and persistence rule. It
+  does **not** estimate failure probability or remaining useful life.
+- Drafts and updates one reviewable work order per affected asset, avoiding a
+  new order for each sample. A named human reviewer approves or dismisses it.
+- Keeps an in-memory trace of validation, assessment, and planning decisions.
 
+The local dashboard and CLI share the same `MaintenanceStudio` workflow.
+The local server binds to `127.0.0.1`; in Replit it binds to `0.0.0.0` using
+the assigned `PORT`. It has no authentication or persistent storage: a public
+deployment is a disposable synthetic demo and visitors can reset it or review
+its drafts. It must not be used with real operational data. There is no live
+equipment connection, ABB system integration, CMMS integration, trained ML
+model, or autonomous control. All demonstration readings are synthetic.
 
-class SiliconLagCalibrator:
-    """
-    Patent-Pending Silicon Lag Calibration Engine.
-    Adjusts raw sensor telemetry timestamps and signal vectors based on
-    microchip hardware queue delays and propagation jitter.
-    """
+## Architecture
 
-    def __init__(self, alpha_decay: float = 0.05):
-        self.alpha_decay = alpha_decay
-        self.lag_history: List[float] = []
+| Stage | Input | Output | Guardrail |
+| --- | --- | --- | --- |
+| Ingestion | Asset ID, UTC timestamp, three readings | Accepted observation or explicit rejection | Range, finiteness, schema, ordering |
+| Assessment | Valid reading, per-asset prior state | Severity, relative indicator, evidence | Explainable illustrative limits |
+| Planning | Non-normal assessment | Updated draft work order | One draft per asset; no equipment action |
+| Review | Draft, reviewer, decision | Approved or dismissed status | Explicit human decision |
 
-    def calibrate(self, frame: TelemetryFrame) -> Tuple[float, Dict[str, float]]:
-        # Calculate dynamic integrated silicon lag tau
-        tau_silicon = frame.hardware_queue_delay_ms / 1000.0
-        
-        # Exponential moving integral of latency drift
-        self.lag_history.append(tau_silicon)
-        if len(self.lag_history) > 50:
-            self.lag_history.pop(0)
+`studio.py` contains the workflow and seeded synthetic stream. `server.py`
+exposes a local JSON API and serves `dashboard.html`. `tests/` verifies the
+critical decision and data-quality behavior. `examples/telemetry.csv` is a
+reproducible sample. The software uses Python standard library only.
 
-        integrated_drift = sum(
-            lag * math.exp(-self.alpha_decay * i) 
-            for i, lag in enumerate(reversed(self.lag_history))
-        ) / len(self.lag_history)
+## Reproduce the demo
 
-        # Calibrated true timestamp
-        calibrated_time = frame.timestamp_raw - (tau_silicon + integrated_drift)
+1. Load the dashboard and click **Process next sample** twice: the asset
+   observations remain normal.
+2. Process the next PUMP-02 sample: an evidence-backed warning draft appears.
+3. Process the following sample: the same draft escalates to critical, with
+   vibration and temperature readings shown next to demo limits.
+4. Enter a reviewer name and approve or dismiss the draft. This action is
+   recorded in the running process.
+5. Paste a duplicate timestamp for PUMP-02: it is rejected, and the accepted
+   count remains unchanged. Click **Reset demo** to start over.
 
-        # Corrected sensor feature vector (filtering out jitter distortion)
-        calibrated_features = {
-            "vibration_calibrated": frame.vibration_hz * (1.0 - (tau_silicon * 0.02)),
-            "temperature_calibrated": frame.temperature_c,
-            "pressure_calibrated": frame.pressure_bar * (1.0 + (integrated_drift * 0.01)),
-            "silicon_lag_compensation_ms": (tau_silicon + integrated_drift) * 1000.0
-        }
+## Contest submission notes
 
-        return calibrated_time, calibrated_features
+- **Project summary:** This synthetic proof of concept converts traceable
+  condition monitoring into technician-reviewed maintenance drafts. Its
+  differentiator is a clear evidence and decision trail, with human control.
+- **Prototype:** Run locally using the command above; the existing hosted
+  project is at https://abb-predictive-maintenance-studio.replit.app/ and should
+  be updated separately if it is meant to show this implementation.
+- **Source:** Submit this repository after syncing these files to GitHub.
+- **Demo video:** Record a 60–90 second walkthrough using the five steps above,
+  show one review decision, and say that all data and limits are illustrative.
+- **Future work:** Obtain permitted industrial data, validate limits with
+  domain specialists, measure false alerts and detection lead time, add durable
+  per-tenant event storage and authentication, then evaluate a CMMS connector.
 
+**Silicon Lag — patent pending:** Proprietary implementation is deliberately
+excluded from this public reference prototype. Any separate integration or
+performance assertion needs its own reproducible validation and IP review.
 
-class ProfilerAgent:
-    """Agent 1: Ingestion & Telemetry Profiling Agent"""
+## Ownership and licensing
 
-    def __init__(self, calibrator: SiliconLagCalibrator):
-        self.calibrator = calibrator
-
-    async def process_frame(self, frame: TelemetryFrame) -> Dict:
-        await asyncio.sleep(0.005)  # Simulate sub-10ms agent processing
-        cal_time, cal_features = self.calibrator.calibrate(frame)
-        
-        # Anomaly score calculation on calibrated signal
-        vib = cal_features["vibration_calibrated"]
-        temp = cal_features["temperature_calibrated"]
-        
-        anomaly_score = (vib / 100.0) * 0.6 + (temp / 120.0) * 0.4
-        
-        return {
-            "sensor_id": frame.sensor_id,
-            "calibrated_timestamp": cal_time,
-            "features": cal_features,
-            "anomaly_score": round(anomaly_score, 4),
-            "status": "CRITICAL" if anomaly_score > 0.85 else "NORMAL"
-        }
-
-
-class DiagnosticEvaluatorAgent:
-    """Agent 2: Diagnostic Evaluator & Work-Order Generation Agent"""
-
-    async def evaluate(self, profiled_data: Dict) -> Dict:
-        await asyncio.sleep(0.01)
-        score = profiled_data["anomaly_score"]
-        sensor_id = profiled_data["sensor_id"]
-
-        if score > 0.85:
-            diagnosis = (
-                f"CRITICAL FAULT DETECTED on {sensor_id}. "
-                f"Silicon-lag compensated vibration peak detected. "
-                f"Recommended Action: Immediate bearing lubrication and torque inspection."
-            )
-            work_order_generated = True
-        else:
-            diagnosis = f"Sensor {sensor_id} operating within normal operational tolerances."
-            work_order_generated = False
-
-        return {
-            "sensor_id": sensor_id,
-            "anomaly_score": score,
-            "diagnosis": diagnosis,
-            "work_order_generated": work_order_generated,
-            "lag_compensated_ms": profiled_data["features"]["silicon_lag_compensation_ms"]
-        }
-
-
-class AgenticMaintenanceStudio:
-    """Main Orchestrator for ABB Accelerator 2026 Submission"""
-
-    def __init__(self):
-        self.calibrator = SiliconLagCalibrator()
-        self.profiler = ProfilerAgent(self.calibrator)
-        self.evaluator = DiagnosticEvaluatorAgent()
-
-    async def run_pipeline(self, frames: List[TelemetryFrame]):
-        print("\n========================================================================")
-        print("  ABB ACCELERATOR 2026: AGENTIC PREDICTIVE MAINTENANCE STUDIO")
-        print("  Featuring Patent-Pending Silicon Lag Technology")
-        print("========================================================================\n")
-
-        for frame in frames:
-            print(f"[Ingestion] Receiving Telemetry from {frame.sensor_id} (Hardware Jitter: {frame.hardware_queue_delay_ms:.2f}ms)...")
-            
-            # Step 1: Profiler Agent + Silicon Lag Calibration
-            profiled = await self.profiler.process_frame(frame)
-            
-            # Step 2: Diagnostic Agent Reasoning
-            result = await self.evaluator.evaluate(profiled)
-
-            # Output results
-            print(f" -> Calibrated Time Delta : {result['lag_compensated_ms']:.3f} ms reduced")
-            print(f" -> Anomaly Score         : {result['anomaly_score']}")
-            print(f" -> Status & Diagnosis    : {result['diagnosis']}")
-            print(f" -> Work Order Generated  : {result['work_order_generated']}")
-            print("-" * 72)
-
-
-# Mock Generator for Telemetry Data Stream
-def generate_mock_stream(count: int = 5) -> List[TelemetryFrame]:
-    frames = []
-    now = time.time()
-    for i in range(count):
-        # Inject an anomaly in frame 3
-        is_anomaly = (i == 3)
-        frames.append(
-            TelemetryFrame(
-                sensor_id=f"ABB-ROBOT-ARM-0{i+1}",
-                timestamp_raw=now + i * 0.1,
-                vibration_hz=145.0 if is_anomaly else 45.2 + random.uniform(-2, 2),
-                temperature_c=98.5 if is_anomaly else 55.0 + random.uniform(-1, 1),
-                pressure_bar=6.2,
-                hardware_queue_delay_ms=random.uniform(15.0, 85.0)  # Simulated silicon delay
-            )
-        )
-    return frames
-
-
-if __name__ == "__main__":
-    studio = AgenticMaintenanceStudio()
-    stream_data = generate_mock_stream(4)
-    asyncio.run(studio.run_pipeline(stream_data))
+Copyright (c) 2026 Greenstacks LLC. All rights reserved. See `LICENSE`: evaluation
+of this prototype is permitted; other use requires written permission. No
+third-party code is bundled.
